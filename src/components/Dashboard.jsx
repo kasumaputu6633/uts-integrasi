@@ -3,6 +3,7 @@ import {
   fetchMahasiswa, 
   fetchJurusan, 
   fetchProgramStudi,
+  fetchMahasiswaTIKelas6C,
   KELAS_6C,
   TAHUN_AKADEMIK
 } from '../lib/api';
@@ -20,7 +21,7 @@ function StatCard({ title, value, loading }) {
   );
 }
 
-function Table({ title, columns, data, loading, pageSize = 10 }) {
+function Table({ title, subtitle, columns, data, loading, pageSize = 10 }) {
   const [page, setPage] = useState(0);
   
   const totalPages = Math.ceil(data.length / pageSize);
@@ -32,6 +33,7 @@ function Table({ title, columns, data, loading, pageSize = 10 }) {
     <div className="bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden shadow-sm">
       <div className="px-6 py-4 border-b border-zinc-700">
         <h3 className="text-lg font-medium text-white">{title}</h3>
+        {subtitle && <p className="text-sm text-zinc-500 mt-1">{subtitle}</p>}
       </div>
       <div className="overflow-x-auto">
         {loading ? (
@@ -101,8 +103,10 @@ export default function Dashboard() {
     totalMahasiswa: 0,
     totalProdi: 0,
     mahasiswa6C: [],
+    mahasiswaTIKelas6CSemester6: [],
     mahasiswaPerJurusan: [],
-    mahasiswaPerProdi: []
+    mahasiswaPerProdi: [],
+    prodiList: []
   });
 
   useEffect(() => {
@@ -111,8 +115,9 @@ export default function Dashboard() {
         setLoading(true);
         setError(null);
 
-        const [tiMhs, allJurusan, allProdi] = await Promise.all([
+        const [tiMhs, tiMhsKelas6CSemester6, allJurusan, allProdi] = await Promise.all([
           fetchMahasiswa(TAHUN_AKADEMIK, '40', '58302'),
+          fetchMahasiswaTIKelas6C(),
           fetchJurusan(),
           fetchProgramStudi('')
         ]);
@@ -145,12 +150,19 @@ export default function Dashboard() {
           return { namaProdi: p?.namaProdi || kode, total };
         }).sort((a, b) => b.total - a.total);
 
+        const getProdiName = (kodeProdi) => {
+          const p = allProdi.find(prodi => prodi.kodeProdi === kodeProdi);
+          return p?.namaProdi || kodeProdi || '-';
+        };
+
         setStats({
           totalMahasiswa: allMhs.length,
           totalProdi: allProdi.length,
           mahasiswa6C: mhs6C,
+          mahasiswaTIKelas6CSemester6: tiMhsKelas6CSemester6,
           mahasiswaPerJurusan: mhsPerJurusan,
-          mahasiswaPerProdi: mhsPerProdi
+          mahasiswaPerProdi: mhsPerProdi,
+          prodiList: allProdi
         });
       } catch (err) {
         setError(err.message);
@@ -202,6 +214,24 @@ export default function Dashboard() {
           jurisdicción: 'Teknologi Informasi',
           prodi: 'Teknologi Rekayasa Perangkat Lunak'
         }))}
+        loading={loading}
+      />
+
+      <Table 
+        title="Mahasiswa TI Kelas 6C Semester 6"
+        subtitle="Data berdasarkan API (tanpa informasi kelas)"
+        columns={['No', 'NIM', 'Nama', 'Jurusan', 'Prodi']}
+        data={stats.mahasiswaTIKelas6CSemester6.map((m, i) => { 
+          const kodeProdi = m.kodeprodi || m.kodeProdi || m.Prodi || m.prodi;
+          const p = stats.prodiList.find(p => p.kodeProdi === kodeProdi);
+          return { 
+            no: i + 1, 
+            nim: m.nim || m.NIM, 
+            nama: m.nama || m.Nama,
+            jurisdicción: 'Teknologi Informasi',
+            prodi: p?.namaProdi || kodeProdi || '-'
+          };
+        })}
         loading={loading}
       />
 

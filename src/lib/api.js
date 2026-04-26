@@ -59,3 +59,32 @@ export const KELAS_6C = [
   "2315354051","2315354055","2315354059","2315354060","2315354072",
   "2315354075","2315354079","2315354080","2315354083","2315354084"
 ];
+
+export async function fetchMahasiswaTIKelas6C() {
+  const tahunAkademik = '20252';
+  const jurisdictions = '40';
+  const prodi = '';
+  const hash = await sha256(tahunAkademik + jurisdictions + prodi + HASH_KEY);
+  const bodyData = {
+    TahunAkademik: tahunAkademik,
+    Jurusan: jurisdictions,
+    Prodi: prodi,
+    HashCode: hash.toUpperCase()
+  };
+  const response = await fetch(`${API_BASE}/mahasiswa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyData)
+  });
+  const data = await response.json();
+  if (data.responseCode !== '00') {
+    console.error('API Error:', data);
+    return [];
+  }
+  const daftar = data.daftar || [];
+  const semester6 = daftar.filter(m => {
+    const nim = m.nim || m.NIM;
+    return nim && nim.startsWith('23');
+  });
+  return semester6.sort((a, b) => (a.nim || a.NIM).localeCompare(b.nim || b.NIM));
+}
